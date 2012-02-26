@@ -1,0 +1,55 @@
+#wshare_header {
+    text-align: center;
+    padding-top: 15px;
+}
+
+#wshare_inputcontainer {
+    text-align: center;
+    padding-top: 15px;
+}
+
+#wshare_contentcontainer {
+    margin-top: 15px;
+}
+
+.control-group {
+    margin-bottom: 0px;
+}
+
+#wshare_thinghidden {
+    display: none;
+}
+
+.thing {
+    margin-bottom: 10px;
+}
+
+.thing:last-child {
+    margin-bottom: 0px;
+}
+
+p.url {
+    font-size: 130%;
+    margin-bottom: 0px;
+}
+
+p.subtitle {
+    color: #777;
+    margin-bottom: 0px;
+    font-size: 85%
+}
+
+#wshare_navigation {
+    text-align: center;
+}
+
+#wshare_navigation a {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+#wshare_wsinfo {
+    color: #777;
+    text-align: center;
+    font-size: 85%
+}
