@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 use Mojolicious::Lite;
+use Mojo::UserAgent;
 use Mojo::ByteStream 'b';
 use Mojo::JSON;
 use utf8;
@@ -15,16 +16,25 @@ get '/' => sub {
 
 any '/save' => sub {
     my $self = shift;
+    my $ua = Mojo::UserAgent->new;
     my $url = $self->param('url');
-    $url = b($url)->html_escape;
+    my $subtitle;
 
     app->log->debug(sprintf 'Got URL: %s', $url);
+    my $response = $ua->get($url);
+    if ($response->res->headers->content_type =~ /text\/html/) {
+        $subtitle = $response->res->dom->at('title')->text;
+    } else {
+        $subtitle = $response->res->headers->content_type;
+    }
+    $url = b($url)->html_escape;
+
     my $json = Mojo::JSON->new;
     for (keys %$clients) {
         $clients->{$_}->send_message(
             b($json->encode({
                 url => $url,
-                subtitle => 'yet to come',
+                subtitle => $subtitle,
             }))->decode('utf-8')->to_string
         );
     }

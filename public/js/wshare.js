@@ -1,3 +1,5 @@
+var reconnect_timer, ws_uri, url; 
+
 $(document).ready(function() {
     
  
@@ -12,7 +14,7 @@ $(document).ready(function() {
         $('#wshare_submit').button('loading');
 
         //Getting URL
-        var url = $('input[name=wshare_url]');
+        url = $('input[name=wshare_url]');
 
         //Checking for valid URL
         if (! isUrl(url.val())) {
@@ -45,7 +47,7 @@ $(document).ready(function() {
 });
 
 wsinit = function() {
-    var ws_uri = "ws://188.192.99.95:3000/ws";
+    ws_uri = "ws://188.192.99.95:3000/ws";
     if (typeof WebSocket !== "undefined" && WebSocket !== null) {
         webSocket = typeof WebSocket === "function" ? new WebSocket(ws_uri) : void 0;
     } else if (typeof MozWebSocket !== "undefined" && MozWebSocket !== null) {
@@ -55,11 +57,16 @@ wsinit = function() {
     }
 
     webSocket.onopen = function() {
+        clearTimeout(reconnect_timer);
         $('#wshare_wsinfo').html("We're live...");
     }
 
     webSocket.onclose = function() {
-        $('#wshare_wsinfo').html("Connection lost...");
+        $('#wshare_wsinfo').html("Connection lost, reconnecting...");
+        reconnect_timer = setTimeout("reconnect_failed()", 6000);
+        webSocket.close();
+        webSocket = null;
+        return wsinit();
     }
 
     webSocket.onmessage = function(e) {
@@ -81,6 +88,10 @@ wsinit = function() {
             temp.fadeIn('slow');
         }
     }
+}
+
+function reconnect_failed() {
+    return $('#wshare_wsinfo').html("Connection lost, please reload...");
 }
 
 function isUrl(s) {
