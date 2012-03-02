@@ -33,6 +33,7 @@ any '/save' => sub {
     for (keys %$clients) {
         $clients->{$_}->send_message(
             b($json->encode({
+                type => 'thing',
                 url => $url,
                 subtitle => $subtitle,
             }))->decode('utf-8')->to_string
@@ -44,15 +45,43 @@ any '/save' => sub {
 
 websocket '/ws' => sub {
     my $self = shift;
+    my $json = Mojo::JSON->new;
+
 
     app->log->debug(sprintf 'WS Client connected: %s', $self->tx);
     my $id = sprintf '%s', $self->tx;
     $clients->{$id} = $self->tx;
 
+    for (keys %$clients) {
+        my $flag;
+        if ($_ ne $id) {
+            $flag = 0; #it's not me
+        } else {
+            $flag = 1; #it's me, please don't bother me
+        }
+        $clients->{$_}->send_message(
+            b($json->encode({
+                type => 'logOn',
+                count => scalar(keys %$clients),
+                flag => $flag,
+            }))->decode('utf-8')->to_string
+        );
+    }
+
     $self->on(finish =>
         sub {
             app->log->debug('WS Client disconnected');
             delete $clients->{$id};
+            for (keys %$clients) {
+                if ($_ ne $self->tx) {
+                    $clients->{$_}->send_message(
+                        b($json->encode({
+                            type => 'logOff',
+                            count => scalar(keys %$clients),
+                        }))->decode('utf-8')->to_string
+                    );
+                }
+            }
         });
 };
 
@@ -70,10 +99,13 @@ __DATA__
     <head>
         <title><%= title %></title>
         <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.notify.css" />
         <link rel="stylesheet" type="text/css" href="css/style.css" />
 
         <script type="text/javascript" src="js/jquery-1.7.1.js" ></script>
         <script type="text/javascript" src="js/bootstrap.js" ></script>
+        <script type="text/javascript" src="js/jquery.ui.widget.js" ></script>
+        <script type="text/javascript" src="js/jquery.notify.js" ></script>
         <script type="text/javascript" src="js/wshare.js"></script>   
     
         <meta charset="UTF-8">
@@ -107,7 +139,14 @@ __DATA__
                 </div>
             </div>
             <div class="row">
-                <div id="wshare_wsinfo"></div>
+                <div id="wshare_wsinfo"><span id="wshare_status"></span><span id="wshare_user"></span></div>
+            </div>
+        </div>
+        <div id="notify-bottom" style="top:auto; left:0; bottom:0; margin:0 0 10px 10px; display: none;" class="ui-notify">
+            <div id="basic-template">
+                <a class="ui-notify-cross ui-notify-close" href="#">x</a>
+                <h1>#{title}</h1>
+                <p>#{text}</p>
             </div>
         </div>
     </body>

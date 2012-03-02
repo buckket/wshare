@@ -5,6 +5,7 @@ $(document).ready(function() {
  
 
     wsinit();
+    $("#notify-bottom").notify();
 
 
     $("#wshare_submit").click(function() {
@@ -58,11 +59,13 @@ wsinit = function() {
 
     webSocket.onopen = function() {
         clearTimeout(reconnect_timer);
-        $('#wshare_wsinfo').html("We're live...");
+        $('#wshare_status').html("We're live...");
+        $('#wshare_user').show();
     }
 
     webSocket.onclose = function() {
-        $('#wshare_wsinfo').html("Connection lost, reconnecting...");
+        $('#wshare_status').html("Connection lost, reconnecting...");
+        $('#wshare_user').hide();
         reconnect_timer = setTimeout("reconnect_failed()", 6000);
         webSocket.close();
         webSocket = null;
@@ -71,27 +74,45 @@ wsinit = function() {
 
     webSocket.onmessage = function(e) {
         var data = jQuery.parseJSON(e.data);
-        var temp = $('#wshare_thinghidden').clone();
-        temp.hide();
-        temp.removeAttr('id');
-        $('.url', temp).append("<a href='" + data.url + "'>" + data.url + "</a>");
-        $('.subtitle', temp).append(data.subtitle);
+        if (data.type == 'logOn') {
+            if (data.flag == 0) {
+                $("#notify-bottom").notify("create", {
+                    title: 'wShare',
+                    text: "User connected... (" + data.count + " in total)"
+                }); 
+            }
+            $('#wshare_user').html(" (" + data.count + " online)");
+        }
+        else if (data.type == 'logOff') {
+            $("#notify-bottom").notify("create", {
+                title: 'wShare',
+                text: "User disconnected... (" + data.count + " remaining)" 
+            });
+            $('#wshare_user').html(" (" + data.count + " online)");
+        }
+        else if (data.type == 'thing') {
+            var temp = $('#wshare_thinghidden').clone();
+            temp.hide();
+            temp.removeAttr('id');
+            $('.url', temp).append("<a href='" + data.url + "'>" + data.url + "</a>");
+            $('.subtitle', temp).append(data.subtitle);
 
-        if ($('.thing').length >= 11) {
-            $('.thing:last-child').fadeOut('fast', function() {
-                $('.thing:last-child').remove()
+            if ($('.thing').length >= 11) {
+                $('.thing:last-child').fadeOut('fast', function() {
+                    $('.thing:last-child').remove()
+                    temp.insertAfter('#wshare_thinghidden');
+                    temp.fadeIn('slow');
+                });   
+            } else {
                 temp.insertAfter('#wshare_thinghidden');
                 temp.fadeIn('slow');
-            });   
-        } else {
-            temp.insertAfter('#wshare_thinghidden');
-            temp.fadeIn('slow');
+            }
         }
     }
 }
 
 function reconnect_failed() {
-    return $('#wshare_wsinfo').html("Connection lost, please reload...");
+    return $('#wshare_status').html("Connection lost, please reload...");
 }
 
 function isUrl(s) {
