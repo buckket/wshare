@@ -2,8 +2,6 @@ var reconnect_timer, ws_uri, url;
 
 $(document).ready(function() {
     
- 
-
     wsinit();
     $("#notify-bottom").notify();
 
@@ -11,8 +9,7 @@ $(document).ready(function() {
     $("#wshare_submit").click(function() {
 
         //Disable input
-        $('#wshare_url').attr('disabled', true);
-        $('#wshare_submit').button('loading');
+        ws_disableInput();
 
         //Getting URL
         url = $('input[name=wshare_url]');
@@ -37,8 +34,8 @@ $(document).ready(function() {
             data: encodeURI('url=' + url.val()),
             success: function (returnData) {
                 //Reenable input
-                $('#wshare_submit').button('reset');
-                $('#wshare_url').removeAttr('disabled');
+                ws_enableInput();
+                $('#wshare_url').val('').focus();
             }
         });
 
@@ -118,4 +115,14 @@ function reconnect_failed() {
 function isUrl(s) {
     var regexp = /(http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/
     return regexp.test(s);
+}
+
+function ws_disableInput() {
+    $('#wshare_url').attr('disabled', true);
+    $('#wshare_submit').button('loading');
+}
+
+function ws_enableInput() {
+    $('#wshare_submit').button('reset');
+    $('#wshare_url').removeAttr('disabled');
 }
