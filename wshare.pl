@@ -1,46 +1,50 @@
 #!/usr/bin/env perl
 use Mojolicious::Lite;
-use Mojo::UserAgent;
 use Mojo::ByteStream 'b';
 use Mojo::JSON;
 use utf8;
-
 
 my $clients = {};
 
 get '/' => sub {
   my $self = shift;
-  
   $self->render('index');
 };
 
 any '/save' => sub {
     my $self = shift;
-    my $ua = Mojo::UserAgent->new;
     my $url = $self->param('url');
-    my $subtitle;
+    my ($subtitle, $emessage, $ecode);
 
     app->log->debug(sprintf 'Got URL: %s', $url);
-    my $response = $ua->get($url);
-    if ($response->res->headers->content_type =~ /text\/html/) {
-        $subtitle = $response->res->dom->at('title')->text;
-    } else {
-        $subtitle = $response->res->headers->content_type;
-    }
-    $url = b($url)->html_escape;
+    $self->ua->get($url => sub {
+        my ($ua, $response) = @_;
+        if (! $response->success) {
+            ($emessage, $ecode) = $response->error;        
+        }
+        if ($response->res->headers->content_type =~ /text\/html/) {
+            $subtitle = $response->res->dom->at('title')->text;
+        } else {
+            if (defined($ecode) && $ecode == 413) {
+                $subtitle = sprintf('%s (>= 5MB)', $response->res->headers->content_type);
+            }
+            else {
+                $subtitle = $response->res->headers->content_type;
+            }
+        }
+        $url = b($url)->html_escape;
 
-    my $json = Mojo::JSON->new;
-    for (keys %$clients) {
-        $clients->{$_}->send_message(
-            b($json->encode({
+        my $json = Mojo::JSON->new;
+        for (keys %$clients) {
+            $clients->{$_}->send_message(
+               b($json->encode({
                 type => 'thing',
                 url => $url,
                 subtitle => $subtitle,
-            }))->decode('utf-8')->to_string
-        );
-    }
-
-    $self->render(text => "Thanks for $url ");
+            }))->decode('utf-8')->to_string);
+        }
+    });
+    $self->render(text => 'success');
 };
 
 websocket '/ws' => sub {
